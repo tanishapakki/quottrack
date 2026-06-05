@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL = "https://quottrack.onrender.com";
+const API_BASE_URL = "https://quottrack.onrender.com/api";
 
 export const fetchClients = async () => {
   const response = await axios.get(`${API_BASE_URL}/clients`);
