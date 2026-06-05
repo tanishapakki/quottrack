@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { fetchQuotations, createQuotation  } from "../api/quotationsApi";
 import { fetchClients } from "../api/clientsApi";
-const [clients, setClients] = useState([]);
+
+function Quotations() {
+  const [clients, setClients] = useState([]);
 const [formData, setFormData] = useState({
   quotation_number: "",
   client_id: "",
@@ -13,7 +15,6 @@ const [formData, setFormData] = useState({
 });
 const [submitting, setSubmitting] = useState(false);
 
-function Quotations() {
   const [quotations, setQuotations] = useState([]);
   const [loading, setLoading] = useState(true);
   const handleChange = (e) => {
