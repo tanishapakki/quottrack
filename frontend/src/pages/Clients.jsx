@@ -1,185 +1,125 @@
 import { useEffect, useState } from "react";
 import { fetchClients, createClient } from "../api/clientsApi";
-function Clients() {
-  const [clients, setClients] = useState([]);
-  const [loading, setLoading] = useState(true);
-const [formData, setFormData] = useState({
-  name: "",
-  email: "",
-  phone: "",
-  address: "",
-  requires_work_order: false,
-});
 
-const [submitting, setSubmitting] = useState(false);
-const handleChange = (e) => {
-  const { name, value, type, checked } = e.target;
-  setFormData((prev) => ({
-    ...prev,
-    [name]: type === "checkbox" ? checked : value,
-  }));
-};
+const EMPTY = { name: "", email: "", phone: "", address: "", requires_work_order: false };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-
-  if (!formData.name.trim()) {
-    alert("Client name is required");
-    return;
-  }
-
-  try {
-    setSubmitting(true);
-    const newClient = await createClient(formData);
-    setClients((prev) => [newClient, ...prev]);
-
-    setFormData({
-      name: "",
-      email: "",
-      phone: "",
-      address: "",
-      requires_work_order: false,
-    });
-  } catch (err) {
-    alert("Failed to create client");
-  } finally {
-    setSubmitting(false);
-  }
-};
+export default function Clients() {
+  const [clients, setClients]     = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [formData, setFormData]   = useState(EMPTY);
+  const [submitting, setSubmitting] = useState(false);
+  const [showForm, setShowForm]   = useState(false);
 
   useEffect(() => {
-    const loadClients = async () => {
-      try {
-        const data = await fetchClients();
-        setClients(data);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadClients();
+    fetchClients()
+      .then(setClients)
+      .catch(console.error)
+      .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <p style={{ padding: "20px" }}>Loading clients...</p>;
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(p => ({ ...p, [name]: type === "checkbox" ? checked : value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.name.trim()) { alert("Client name is required"); return; }
+    try {
+      setSubmitting(true);
+      const newClient = await createClient(formData);
+      setClients(p => [newClient, ...p]);
+      setFormData(EMPTY);
+      setShowForm(false);
+    } catch { alert("Failed to create client"); }
+    finally { setSubmitting(false); }
+  };
+
+  if (loading) return <div className="loading-bar"><div className="spinner" /><span>Loading clients…</span></div>;
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h1>Clients</h1>
+    <div>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 20 }}>
+        <button className="btn-primary" onClick={() => setShowForm(v => !v)}>
+          {showForm ? "✕ Cancel" : "+ Add Client"}
+        </button>
+      </div>
 
-      <form
-  onSubmit={handleSubmit}
-  style={{
-    marginTop: "20px",
-    marginBottom: "30px",
-    padding: "16px",
-    border: "1px solid #ddd",
-    borderRadius: "6px",
-    maxWidth: "500px",
-  }}
->
-  <h3>Add New Client</h3>
-
-  <input
-    name="name"
-    placeholder="Client Name *"
-    value={formData.name}
-    onChange={handleChange}
-    style={inputStyle}
-  />
-
-  <input
-    name="email"
-    placeholder="Email"
-    value={formData.email}
-    onChange={handleChange}
-    style={inputStyle}
-  />
-
-  <input
-    name="phone"
-    placeholder="Phone"
-    value={formData.phone}
-    onChange={handleChange}
-    style={inputStyle}
-  />
-
-  <input
-    name="address"
-    placeholder="Address"
-    value={formData.address}
-    onChange={handleChange}
-    style={inputStyle}
-  />
-
-  <label style={{ display: "block", marginBottom: "10px" }}>
-    <input
-      type="checkbox"
-      name="requires_work_order"
-      checked={formData.requires_work_order}
-      onChange={handleChange}
-    />{" "}
-    Requires Work Order
-  </label>
-
-  <button type="submit" disabled={submitting}>
-    {submitting ? "Saving..." : "Add Client"}
-  </button>
-</form>
-
-      {clients.length === 0 ? (
-        <p>No clients found.</p>
-      ) : (
-        <table
-          style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            marginTop: "20px",
-          }}
-        >
-          <thead>
-            <tr>
-              <th style={thStyle}>Name</th>
-              <th style={thStyle}>Email</th>
-              <th style={thStyle}>Phone</th>
-              <th style={thStyle}>Requires WO</th>
-            </tr>
-          </thead>
-          <tbody>
-            {clients.map((client) => (
-              <tr key={client.id}>
-                <td style={tdStyle}>{client.name}</td>
-                <td style={tdStyle}>{client.email || "-"}</td>
-                <td style={tdStyle}>{client.phone || "-"}</td>
-                <td style={tdStyle}>
-                  {client.requires_work_order ? "Yes" : "No"}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {showForm && (
+        <div className="form-card">
+          <div className="form-card-title">👤 New Client</div>
+          <form onSubmit={handleSubmit}>
+            <div className="form-grid">
+              <div className="form-group span2">
+                <label className="form-label">Client Name *</label>
+                <input className="form-input" name="name" placeholder="e.g. Acme Corp" value={formData.name} onChange={handleChange} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Email</label>
+                <input className="form-input" name="email" type="email" placeholder="email@example.com" value={formData.email} onChange={handleChange} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Phone</label>
+                <input className="form-input" name="phone" placeholder="+91 98765 43210" value={formData.phone} onChange={handleChange} />
+              </div>
+              <div className="form-group span2">
+                <label className="form-label">Address</label>
+                <input className="form-input" name="address" placeholder="Full address" value={formData.address} onChange={handleChange} />
+              </div>
+              <div className="form-group span2">
+                <div className="form-checkbox-group">
+                  <input type="checkbox" id="rwo" name="requires_work_order" checked={formData.requires_work_order} onChange={handleChange} />
+                  <label htmlFor="rwo">This client requires a Work Order before work begins</label>
+                </div>
+              </div>
+            </div>
+            <div style={{ marginTop: 18, display: "flex", gap: 10 }}>
+              <button className="btn-primary" type="submit" disabled={submitting}>
+                {submitting ? "Saving…" : "Save Client"}
+              </button>
+              <button className="btn-secondary" type="button" onClick={() => setShowForm(false)}>Cancel</button>
+            </div>
+          </form>
+        </div>
       )}
+
+      <div className="table-card">
+        <div className="table-card-header">
+          <span className="table-card-title">All Clients</span>
+          <span style={{ fontSize: 12, color: "var(--text-hint)" }}>{clients.length} total</span>
+        </div>
+        {clients.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-state-icon">👥</div>
+            <p>No clients yet. Add your first client above.</p>
+          </div>
+        ) : (
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Work Order Required</th>
+              </tr>
+            </thead>
+            <tbody>
+              {clients.map(c => (
+                <tr key={c.id}>
+                  <td style={{ fontWeight: 500 }}>{c.name}</td>
+                  <td style={{ color: "var(--text-muted)" }}>{c.email || "—"}</td>
+                  <td style={{ color: "var(--text-muted)" }}>{c.phone || "—"}</td>
+                  <td>
+                    {c.requires_work_order
+                      ? <span className="badge approved"><span className="badge-dot" />Yes</span>
+                      : <span className="badge draft"><span className="badge-dot" />No</span>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   );
 }
-
-const inputStyle = {
-  display: "block",
-  width: "100%",
-  padding: "8px",
-  marginBottom: "10px",
-};
-
-const thStyle = {
-  borderBottom: "1px solid #ccc",
-  textAlign: "left",
-  padding: "8px",
-};
-
-const tdStyle = {
-  borderBottom: "1px solid #eee",
-  padding: "8px",
-};
-
-export default Clients;

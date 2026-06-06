@@ -1,82 +1,117 @@
 import { useEffect, useState } from "react";
 import { fetchDashboardStats } from "./api/dashboardApi";
-import StatCard from "./components/StatCard";
 import Clients from "./pages/Clients";
 import Quotations from "./pages/Quotations";
+import "./App.css";
 
-function App() {
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState("dashboard");
+const NAV = [
+  { id: "dashboard", label: "Dashboard", icon: "📊" },
+  { id: "quotations", label: "Quotations", icon: "📋" },
+  { id: "clients", label: "Clients", icon: "👥" },
+];
 
-  useEffect(() => {
-    const loadStats = async () => {
-      const data = await fetchDashboardStats();
-      setStats(data);
-      setLoading(false);
-    };
-    loadStats();
-  }, []);
-
-  if (loading) return <p>Loading dashboard...</p>;
-
+function StatCard({ title, value, highlight }) {
   return (
-    <div style={{ fontFamily: "Arial, sans-serif" }}>
-      {/* Top Navigation */}
-      <div style={{ padding: "10px", borderBottom: "1px solid #ddd" }}>
-        <button onClick={() => setPage("dashboard")}>Dashboard</button>
-        <button onClick={() => setPage("clients")} style={{ marginLeft: "10px" }}>
-          Clients
-        </button>
-        <button onClick={() => setPage("quotations")} style={{ marginLeft: "10px" }}>
-  Quotations
-</button>
-      </div>
-
-      {/* Dashboard */}
-      {page === "dashboard" && (
-        <div style={{ padding: "20px" }}>
-          <h1>QuotTrack Dashboard</h1>
-
-          <div
-            style={{
-              display: "flex",
-              gap: "16px",
-              flexWrap: "wrap",
-              marginTop: "20px",
-            }}
-          >
-            <StatCard title="Total Quotations" value={stats.totalQuotations} />
-            <StatCard title="Pending Approval" value={stats.pendingApproval} />
-            <StatCard title="Approved Quotations" value={stats.approvedQuotations} />
-            <StatCard title="Jobs In Progress" value={stats.jobsInProgress} />
-            <StatCard title="Jobs Completed" value={stats.jobsCompleted} />
-
-            <StatCard
-              title="Work Without Approval"
-              value={stats.workWithoutApproval}
-              highlight={stats.workWithoutApproval > 0 ? "warning" : ""}
-            />
-
-            <StatCard
-              title="Missing Compulsory WO"
-              value={stats.missingCompulsoryWO}
-              highlight={stats.missingCompulsoryWO > 0 ? "danger" : ""}
-            />
-
-            <StatCard
-              title="Pending Payments"
-              value={stats.pendingPayments}
-              highlight={stats.pendingPayments > 0 ? "warning" : ""}
-            />
-          </div>
-        </div>
-      )}
-
-      {page === "clients" && <Clients />}
-      {page === "quotations" && <Quotations />}
+    <div className={`stat-card ${highlight || ""}`}>
+      <div className="stat-label">{title}</div>
+      <div className="stat-value">{value ?? "—"}</div>
     </div>
   );
 }
 
-export default App;
+function Dashboard({ stats, loading }) {
+  if (loading) return <div className="loading-bar"><div className="spinner" /><span>Loading stats…</span></div>;
+
+  return (
+    <div>
+      {stats?.workWithoutApproval > 0 && (
+        <div className="alert-bar">
+          ⚠️ <strong>{stats.workWithoutApproval}</strong> job(s) started without approval
+        </div>
+      )}
+      {stats?.missingCompulsoryWO > 0 && (
+        <div className="alert-bar danger">
+          🚨 <strong>{stats.missingCompulsoryWO}</strong> missing compulsory work order(s)
+        </div>
+      )}
+
+      <div className="stats-grid">
+        <StatCard title="Total Quotations"    value={stats?.totalQuotations} />
+        <StatCard title="Pending Approval"    value={stats?.pendingApproval} />
+        <StatCard title="Approved"            value={stats?.approvedQuotations} />
+        <StatCard title="Jobs In Progress"    value={stats?.jobsInProgress} />
+        <StatCard title="Jobs Completed"      value={stats?.jobsCompleted} />
+        <StatCard title="Pending Payments"    value={stats?.pendingPayments}    highlight={stats?.pendingPayments  > 0 ? "warning" : ""} />
+        <StatCard title="Work w/o Approval"   value={stats?.workWithoutApproval} highlight={stats?.workWithoutApproval > 0 ? "warning" : ""} />
+        <StatCard title="Missing Compulsory WO" value={stats?.missingCompulsoryWO} highlight={stats?.missingCompulsoryWO > 0 ? "danger" : ""} />
+      </div>
+
+      <div style={{ color: "var(--text-hint)", fontSize: 12, marginTop: 8 }}>
+        Last refreshed: {new Date().toLocaleTimeString()}
+      </div>
+    </div>
+  );
+}
+
+export default function App() {
+  const [stats, setStats] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [page, setPage] = useState("dashboard");
+
+  useEffect(() => {
+    fetchDashboardStats()
+      .then(setStats)
+      .finally(() => setStatsLoading(false));
+  }, []);
+
+  const pageLabels = { dashboard: "Dashboard", quotations: "Quotations", clients: "Clients" };
+  const pageSubtitles = {
+    dashboard: "Overview of your quotation activity",
+    quotations: "Manage and track all quotations",
+    clients: "Manage client records",
+  };
+
+  return (
+    <div className="app-shell">
+      <aside className="sidebar">
+        <div className="sidebar-logo">
+          <div className="logo-mark">
+            <div className="logo-icon">Q</div>
+            <span className="logo-text">Quot<span>Track</span></span>
+          </div>
+        </div>
+
+        <nav className="sidebar-nav">
+          <div className="nav-section-label">Menu</div>
+          {NAV.map(item => (
+            <button
+              key={item.id}
+              className={`nav-btn ${page === item.id ? "active" : ""}`}
+              onClick={() => setPage(item.id)}
+            >
+              <span style={{ fontSize: 15 }}>{item.icon}</span>
+              {item.label}
+            </button>
+          ))}
+        </nav>
+
+        <div className="sidebar-footer">QuotTrack v1.0</div>
+      </aside>
+
+      <main className="main-content">
+        <header className="page-header">
+          <div>
+            <div className="page-title">{pageLabels[page]}</div>
+            <div className="page-subtitle">{pageSubtitles[page]}</div>
+          </div>
+        </header>
+
+        <div className="page-body">
+          {page === "dashboard"   && <Dashboard stats={stats} loading={statsLoading} />}
+          {page === "clients"     && <Clients />}
+          {page === "quotations"  && <Quotations />}
+        </div>
+      </main>
+    </div>
+  );
+}
